@@ -12,6 +12,12 @@ nhận `RESUME`, server tiếp tục gửi thời gian mỗi giây.
   thái Pause/Resume độc lập cho từng client.
 - **Gửi thời gian:** khi client không bị Pause, server gửi ngày giờ hiện tại sau
   mỗi một giây bằng TCP.
+- **Phát hiện thay đổi giờ hệ thống:** một luồng giám sát dùng chung so sánh
+  `System.nanoTime()` với `System.currentTimeMillis()` để nhận biết việc chỉnh
+  đồng hồ, đồng thời nạp lại múi giờ mặc định của JVM để nhận thay đổi từ mục
+  **Settings > Time & language > Date & time > Time zone** trên Windows. Khi có
+  thay đổi, mọi client nhận ngay thời gian mới kèm prefix `TIMECHANGE:`, kể cả
+  client đang Pause, và hiển thị cảnh báo trong 5 giây.
 - **Điều khiển:** nút Pause gửi `PAUSE`, nút Resume gửi `RESUME`. Server vẫn đọc
   lệnh trong lúc tạm dừng gửi thời gian.
 - **Kết nối LAN:** client nhập IPv4 của máy chạy server. Cổng TCP `7000` đã được

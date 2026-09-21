@@ -1,6 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
+chcp 65001 >nul
 
 where javac >nul 2>&1
 if errorlevel 1 (
@@ -11,7 +12,7 @@ if errorlevel 1 (
 
 if not exist "build" mkdir "build"
 
-javac -d "build" timeserver.java
+javac -encoding UTF-8 -d "build" timeserver.java
 if errorlevel 1 (
     echo Bien dich server that bai.
     pause
@@ -19,6 +20,14 @@ if errorlevel 1 (
 )
 
 java -cp "build" timeserver
+set "SERVER_EXIT_CODE=%ERRORLEVEL%"
 
-if errorlevel 1 pause
-endlocal
+echo.
+if not "%SERVER_EXIT_CODE%"=="0" (
+    echo Server da dung voi ma loi %SERVER_EXIT_CODE%.
+) else (
+    echo Server da dung.
+)
+echo Nhan phim bat ky de dong cua so nay...
+pause >nul
+endlocal & exit /b %SERVER_EXIT_CODE%

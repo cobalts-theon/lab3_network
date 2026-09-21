@@ -5,7 +5,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -19,9 +21,14 @@ public class timeclient extends JFrame {
     private static final long serialVersionUID = 1L;
     private static final int PORT = 7000;
 
+    // Prefix đặc biệt từ server khi giờ hệ thống thay đổi
+    private static final String TIME_CHANGE_PREFIX = "TIMECHANGE:";
+
     private final JLabel timeLabel = new JLabel("Đang kết nối...", SwingConstants.CENTER);
+    private final JLabel statusLabel = new JLabel(" ", SwingConstants.CENTER);
     private final JButton pauseButton = new JButton("Pause");
     private final JButton resumeButton = new JButton("Resume");
+    private final Timer clearStatusTimer = new Timer(5000, e -> clearStatus());
     private final AtomicBoolean disconnectMessageShown = new AtomicBoolean(false);
 
     private transient Socket socket;
@@ -37,11 +44,14 @@ public class timeclient extends JFrame {
 
     private void createUI(String serverIP) {
         setTitle("TCP Time Client - " + serverIP + ":" + PORT);
-        setSize(500, 220);
+        setSize(500, 250);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
         timeLabel.setFont(new Font("SansSerif", Font.BOLD, 34));
+        statusLabel.setFont(new Font("SansSerif", Font.ITALIC, 13));
+        statusLabel.setForeground(new Color(0, 128, 0));
+        clearStatusTimer.setRepeats(false);
         pauseButton.setEnabled(false);
         resumeButton.setEnabled(false);
 
@@ -49,7 +59,12 @@ public class timeclient extends JFrame {
         buttonPanel.add(pauseButton);
         buttonPanel.add(resumeButton);
 
-        add(timeLabel, BorderLayout.CENTER);
+        // Panel trung tâm chứa thời gian và dòng trạng thái
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        centerPanel.add(timeLabel, BorderLayout.CENTER);
+        centerPanel.add(statusLabel, BorderLayout.SOUTH);
+
+        add(centerPanel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
 
         pauseButton.addActionListener(e -> sendCommand("PAUSE"));
@@ -91,9 +106,27 @@ public class timeclient extends JFrame {
 
     private void receiveTime() throws IOException {
         while (!socket.isClosed()) {
-            String time = input.readUTF();
-            SwingUtilities.invokeLater(() -> timeLabel.setText(time));
+            String data = input.readUTF();
+
+            if (data.startsWith(TIME_CHANGE_PREFIX)) {
+                // Server báo giờ hệ thống đã thay đổi
+                String newTime = data.substring(TIME_CHANGE_PREFIX.length());
+                SwingUtilities.invokeLater(() -> {
+                    timeLabel.setText(newTime);
+                    statusLabel.setText("⚠ Giờ hoặc múi giờ hệ thống server đã thay đổi!");
+                    statusLabel.setForeground(new Color(200, 0, 0));
+                    clearStatusTimer.restart();
+                });
+            } else {
+                // Cập nhật thời gian bình thường
+                SwingUtilities.invokeLater(() -> timeLabel.setText(data));
+            }
         }
+    }
+
+    private void clearStatus() {
+        statusLabel.setText(" ");
+        statusLabel.setForeground(new Color(0, 128, 0));
     }
 
     private void sendCommand(String command) {
